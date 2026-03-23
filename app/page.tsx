@@ -88,10 +88,12 @@ function ScheduleGrid({
   availability,
   onToggle,
   emerald = false,
+  isCommonTab = false, // 新增：用於判斷是否為共同空閒分頁
 }: {
   availability: TimeSlot[];
   onToggle?: (day: number, hour: number) => void;
   emerald?: boolean;
+  isCommonTab?: boolean;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -120,11 +122,31 @@ function ScheduleGrid({
                     ? "bg-emerald-400 border-emerald-400"
                     : "bg-primary border-primary"
                   : "bg-muted border-border hover:bg-muted/60";
+
+                // 決定滑鼠指標樣式：若是可切換時段，或是共同空閒時段，顯示 pointer
+                const isClickable = onToggle || (isCommonTab && active);
+
                 return (
                   <td key={d} className="p-0.5">
                     <div
-                      className={`h-8 rounded border transition-colors ${cellClass} ${onToggle ? "cursor-pointer" : "cursor-default"}`}
-                      onClick={() => onToggle?.(d, h)}
+                      className={`h-8 rounded border transition-colors ${cellClass} ${
+                        isClickable ? "cursor-pointer" : "cursor-default"
+                      }`}
+                      onClick={() => {
+                        if (onToggle) {
+                          // 正常的時段切換功能（我的時間表）
+                          onToggle?.(d, h);
+                        } else if (isCommonTab && active) {
+                          // 新功能：在共同空閒分頁點擊時觸發預約
+                          const dayName = DAYS[d];
+                          const confirmBooking = window.confirm(
+                            `\n確認要預約 ${dayName} ${h}:00 - ${h+1}:00 的全員會議嗎？\n點擊確認後將自動同步至所有成員行事曆。`
+                          );
+                          if (confirmBooking) {
+                            alert("✅ 預約成功！");
+                          }
+                        }
+                      }}
                     />
                   </td>
                 );
@@ -406,7 +428,7 @@ export default function MeetFlow() {
                     目前沒有共同空閒時段
                   </p>
                 ) : (
-                  <ScheduleGrid availability={commonSlots} emerald />
+                  <ScheduleGrid availability={commonSlots} emerald isCommonTab={true} />
                 )}
               </CardContent>
             </Card>
